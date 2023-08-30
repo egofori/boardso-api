@@ -25,8 +25,8 @@ model User {
   contacts     Json?
   profileImage String?
   confirmed    Boolean?    @default(false)
-  Billboard    Billboard[]
-  Bookmark     Bookmark[]
+  billboards   Billboard[]
+  bookmarks    Bookmark[]
 }
 
 model Billboard {
@@ -34,17 +34,24 @@ model Billboard {
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt()
 
-  title       String
-  description String?
-  dimensions  Json
-  price       String
-  images      Json[]
-  type        String
-  status      String
-  location    Json
-  owner       User       @relation(fields: [userId], references: [id])
-  userId      Int
-  Bookmark    Bookmark[]
+  title             String
+  slug              String             @unique
+  description       String?
+  images            BillboardImage[]
+  thumbnailId       Int?
+  type              String
+  status            Status             @default(AVAILABLE)
+  owner             User               @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ownerId           Int
+  bookmarks         Bookmark[]
+  billboardLocation BillboardLocation?
+  // dimension
+  width             Int?
+  height            Int?
+  // price
+  currency          String
+  price             Int
+  rate              Rate
 }
 
 model Bookmark {
@@ -52,8 +59,63 @@ model Bookmark {
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt()
 
-  billboard   Billboard @relation(fields: [billboardId], references: [id])
+  billboard   Billboard @relation(fields: [billboardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   billboardId Int
-  owner       User      @relation(fields: [userId], references: [id])
-  userId      Int
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ownerId     Int
+}
+
+model BillboardImage {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  name             String
+  extension        String
+  url              String
+  mime             String
+  size             Int //bytes
+  width            Int
+  height           Int
+  provider         Provider  @default(AWS_S3)
+  providerMetadata Json?
+  billboard        Billboard @relation(fields: [billboardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  billboardId      Int
+}
+
+model BillboardLocation {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  route                    String?
+  neighbourhood            String?
+  sublocality              String?
+  locality                 String?
+  administrativeAreaLevel3 String?
+  administrativeAreaLevel2 String?
+  administrativeAreaLevel1 String?
+  country                  String?
+  address                  String?
+  lat                      Float
+  lng                      Float
+  billboard                Billboard @relation(fields: [billboardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  billboardId              Int       @unique
+}
+
+enum Provider {
+  AWS_S3
+  CLOUDINARY
+  LOCAL
+}
+
+enum Status {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum Rate {
+  PER_MONTH
+  PER_YEAR
+  FOR_SALE
 }

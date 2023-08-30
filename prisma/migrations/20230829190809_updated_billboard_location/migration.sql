@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Billboard" ALTER COLUMN "height" DROP NOT NULL,
+ALTER COLUMN "width" DROP NOT NULL;
