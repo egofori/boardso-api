@@ -16,6 +16,14 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@/types/*": ["./src/types/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/decorators/*": ["./src/decorators/*"],
+      "@/interceptors/*": ["./src/decorators/*"],
+      "@/components/*": ["./app/components/*"],
+      "@/*": ["./src/*"]
+    }
   }
 }
