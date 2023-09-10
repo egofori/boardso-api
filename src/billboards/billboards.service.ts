@@ -5,6 +5,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { BillboardImagesService } from 'src/billboard-images/billboard-images.service';
 import { randomBytes } from 'crypto';
 import slugify from 'slugify';
+import { SearchBillboardsDto } from './dto/search-billboards.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BillboardsService {
@@ -72,8 +74,167 @@ export class BillboardsService {
       );
   }
 
-  findAll() {
-    return this.prisma.billboard.findMany();
+  orderBy(
+    sort: 'DATE_ASC' | 'DATE_DESC' | 'PRICE_ASC' | 'PRICE_DESC',
+  ): Prisma.BillboardOrderByWithRelationInput {
+    switch (sort) {
+      case 'DATE_ASC':
+        return { createdAt: 'asc' };
+      case 'DATE_DESC':
+        return { createdAt: 'desc' };
+      case 'PRICE_ASC':
+        return { price: 'asc' };
+      case 'PRICE_DESC':
+        return { price: 'desc' };
+      default:
+        return { createdAt: 'desc' };
+    }
+  }
+
+  async findAll(data?: SearchBillboardsDto) {
+    const minPrice = data?.minPrice ? Number(data.minPrice) : undefined;
+    const maxPrice = data?.maxPrice ? Number(data.maxPrice) : undefined;
+    let width = data?.width ? Number(data.width) : undefined;
+    let height = data?.height ? Number(data.height) : undefined;
+
+    if (data.dimensionUnit === 'METERS') {
+      width = width ? width * 3.28084 : undefined;
+      height = height ? height * 3.28084 : undefined;
+    }
+
+    const filter: Prisma.BillboardWhereInput = {
+      OR: [
+        {
+          title: {
+            contains: data?.search || '',
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: data?.search || '',
+            mode: 'insensitive',
+          },
+        },
+      ],
+      type: data?.type,
+      AND: [
+        {
+          price: {
+            gte: minPrice,
+          },
+        },
+        {
+          price:
+            maxPrice !== 10000
+              ? {
+                  lte: maxPrice,
+                }
+              : undefined,
+        },
+      ],
+      width,
+      height,
+      currency: data?.currency,
+      billboardLocation: {
+        OR: [
+          {
+            address: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+          {
+            administrativeAreaLevel1: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+          {
+            administrativeAreaLevel2: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+          {
+            administrativeAreaLevel3: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+          {
+            locality: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+          {
+            sublocality: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+          {
+            country: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+          {
+            route: {
+              contains: data?.location || '',
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+    };
+
+    const billboards = await this.prisma.billboard.findMany({
+      skip: data.offset,
+      take: data.limit,
+      where: filter,
+      select: {
+        updateAt: true,
+        currency: true,
+        id: true,
+        slug: true,
+        title: true,
+        description: true,
+        height: true,
+        width: true,
+        price: true,
+        rate: true,
+        type: true,
+        status: true,
+        thumbnailId: true,
+        images: true,
+        billboardLocation: {
+          select: {
+            address: true,
+            lat: true,
+            lng: true,
+          },
+        },
+        owner: {
+          select: {
+            firstName: true,
+            lastName: true,
+            username: true,
+            profileImage: true,
+          },
+        },
+      },
+      orderBy: this.orderBy(data?.sort),
+    });
+
+    // get the count using the smae filter as the findAll
+    const aggregations = await this.prisma.billboard.aggregate({
+      _count: true,
+      where: filter,
+    });
+
+    return { data: billboards, count: aggregations._count };
   }
 
   findOne(slug: string) {

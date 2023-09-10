@@ -9,13 +9,16 @@ import {
   UseInterceptors,
   UploadedFiles,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { BillboardsService } from './billboards.service';
 import { CreateBillboardDto } from './dto/create-billboard.dto';
 import { UpdateBillboardDto } from './dto/update-billboard.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { GetCurrentUserId } from 'src/common/decorators/get-current-user-id.decorator';
+import { GetCurrentUserId } from 'src/decorators/get-current-user-id.decorator';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
+import { SearchBillboardsDto } from './dto/search-billboards.dto';
+import { PaginateInterceptor } from '../interceptors/paginate.interceptor';
 
 @Controller('billboards')
 export class BillboardsController {
@@ -33,8 +36,9 @@ export class BillboardsController {
   }
 
   @Get()
-  findAll() {
-    return this.billboardsService.findAll();
+  @UseInterceptors(PaginateInterceptor)
+  findAll(@Query() searchBillboardsDto?: SearchBillboardsDto) {
+    return this.billboardsService.findAll(searchBillboardsDto);
   }
 
   @Get(':id')
