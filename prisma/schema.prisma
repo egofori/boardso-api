@@ -15,18 +15,41 @@ model User {
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt()
 
-  firstName    String
-  lastName     String
-  phone        Json?
-  email        String?     @unique
-  password     String
-  username     String      @unique
-  about        String?
-  contacts     Json?
+  firstName   String
+  lastName    String
+  zipCode     String?
+  phone       String?
+  email       String?      @unique
+  password    String
+  username    String       @unique
+  confirmed   Boolean?     @default(false)
+  billboards  Billboard[]
+  bookmarks   Bookmark[]
+  userProfile UserProfile?
+}
+
+model UserProfile {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
   profileImage String?
-  confirmed    Boolean?    @default(false)
-  billboards   Billboard[]
-  bookmarks    Bookmark[]
+  about        String?
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId       Int           @unique
+  contacts     UserContact[]
+}
+
+model UserContact {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  title         String
+  contact       String[]
+  type          ContactType
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userProfileId Int
 }
 
 model Billboard {
@@ -118,4 +141,10 @@ enum Rate {
   PER_MONTH
   PER_YEAR
   FOR_SALE
+}
+
+enum ContactType {
+  PHONE
+  EMAIL
+  URL
 }
