@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { BillboardsModule } from './billboards/billboards.module';
 import { BillboardImagesModule } from './billboard-images/billboard-images.module';
 import { BillboardLocationsModule } from './billboard-locations/billboard-locations.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { BillboardLocationsModule } from './billboard-locations/billboard-locati
     BillboardsModule,
     BillboardImagesModule,
     BillboardLocationsModule,
+    UsersModule,
   ],
 })
 export class AppModule {}

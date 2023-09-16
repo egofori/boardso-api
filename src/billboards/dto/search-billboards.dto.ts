@@ -41,5 +41,8 @@ export class SearchBillboardsDto {
   public currency: string;
 
   @IsString()
+  public username: string;
+
+  @IsString()
   public sort?: 'DATE_ASC' | 'DATE_DESC' | 'PRICE_ASC' | 'PRICE_DESC';
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { NotFoundException, Injectable } from '@nestjs/common';
 import { CreateBillboardDto } from './dto/create-billboard.dto';
 import { UpdateBillboardDto } from './dto/update-billboard.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -103,6 +103,9 @@ export class BillboardsService {
     }
 
     const filter: Prisma.BillboardWhereInput = {
+      owner: {
+        username: data?.username,
+      },
       OR: [
         {
           title: {
@@ -221,7 +224,11 @@ export class BillboardsService {
             firstName: true,
             lastName: true,
             username: true,
-            profileImage: true,
+            userProfile: {
+              select: {
+                profileImage: true,
+              },
+            },
           },
         },
       },
@@ -237,8 +244,59 @@ export class BillboardsService {
     return { data: billboards, count: aggregations._count };
   }
 
-  findOne(slug: string) {
-    // return this.prisma.billboard.findUnique({ where: { slug } });
+  async findOne(slug: string) {
+    const billboard = await this.prisma.billboard.findUnique({
+      where: { slug },
+      select: {
+        currency: true,
+        description: true,
+        height: true,
+        images: true,
+        id: true,
+        rate: true,
+        slug: true,
+        thumbnailId: true,
+        status: true,
+        title: true,
+        type: true,
+        updateAt: true,
+        width: true,
+        price: true,
+        billboardLocation: {
+          select: {
+            address: true,
+            lat: true,
+            lng: true,
+          },
+        },
+        owner: {
+          select: {
+            firstName: true,
+            lastName: true,
+            username: true,
+            userProfile: {
+              select: {
+                profileImage: true,
+                contacts: {
+                  select: {
+                    id: true,
+                    title: true,
+                    contact: true,
+                    type: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!billboard) {
+      throw new NotFoundException('Billboard does not exist');
+    }
+
+    return billboard;
   }
 
   update(id: number, updateBillboardDto: UpdateBillboardDto) {

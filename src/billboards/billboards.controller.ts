@@ -41,9 +41,9 @@ export class BillboardsController {
     return this.billboardsService.findAll(searchBillboardsDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    // return this.billboardsService.findOne(+id);
+  @Get(':slug')
+  findOne(@Param('slug') slug: string) {
+    return this.billboardsService.findOne(slug);
   }
 
   @Patch(':id')
