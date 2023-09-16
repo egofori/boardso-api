@@ -103,6 +103,9 @@ export class BillboardsService {
     }
 
     const filter: Prisma.BillboardWhereInput = {
+      owner: {
+        username: data?.username,
+      },
       OR: [
         {
           title: {
