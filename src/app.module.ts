@@ -6,6 +6,7 @@ import { BillboardsModule } from './billboards/billboards.module';
 import { BillboardImagesModule } from './billboard-images/billboard-images.module';
 import { BillboardLocationsModule } from './billboard-locations/billboard-locations.module';
 import { UsersModule } from './users/users.module';
+import { UserContactsModule } from './user-contacts/user-contacts.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UsersModule } from './users/users.module';
     BillboardImagesModule,
     BillboardLocationsModule,
     UsersModule,
+    UserContactsModule,
   ],
 })
 export class AppModule {}

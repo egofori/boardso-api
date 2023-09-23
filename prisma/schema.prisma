@@ -37,7 +37,7 @@ model UserProfile {
   about        String?
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId       Int           @unique
-  contacts     UserContact[]
+  userContacts UserContact[]
 }
 
 model UserContact {
@@ -46,7 +46,7 @@ model UserContact {
   updateAt  DateTime @updatedAt()
 
   title         String
-  contact       String[]
+  contacts      String[]
   type          ContactType
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userProfileId Int

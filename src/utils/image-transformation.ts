@@ -1,5 +1,14 @@
 import * as toStream from 'buffer-to-stream';
+import {
+  v2 as cloudinary,
+  UploadApiErrorResponse,
+  UploadApiOptions,
+  UploadApiResponse,
+} from 'cloudinary';
 import * as sharp from 'sharp';
+import { ConfigService } from '@nestjs/config';
+
+const config = new ConfigService();
 
 // get image information
 export const getFileMetadata = (file: Express.Multer.File) =>
@@ -60,3 +69,39 @@ export const optimizeImage = async (file: Express.Multer.File) =>
 
     return toStream(file.buffer).pipe(pipeline);
   });
+
+export const uploadImage = async (pipeline: sharp.Sharp, config?: any) => {
+  const { provider } = config || {};
+
+  if (provider === 'CLOUDINARY') {
+    const options: UploadApiOptions = {
+      folder: config?.folder,
+      filename_override: config?.filename,
+      resource_type: 'image',
+      unique_filename: false,
+      use_filename: true,
+    };
+    return uploadImageToCloudinary(pipeline, options);
+  }
+};
+
+export const uploadImageToCloudinary = async (
+  pipeline: sharp.Sharp,
+  options?: UploadApiOptions,
+): Promise<UploadApiResponse | UploadApiErrorResponse> => {
+  return new Promise((resolve, reject) => {
+    cloudinary.config({
+      cloud_name: config.get<string>('CLOUD_NAME'),
+      api_key: config.get<string>('CLOUD_API_KEY'),
+      api_secret: config.get<string>('CLOUD_API_SECRET'),
+    });
+    const upload = cloudinary.uploader.upload_stream(
+      options,
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      },
+    );
+    pipeline.pipe(upload);
+  });
+};
