@@ -1,11 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Billboard } from '@prisma/client';
-import {
-  v2 as cloudinary,
-  UploadApiErrorResponse,
-  UploadApiOptions,
-  UploadApiResponse,
-} from 'cloudinary';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as randomBytes from 'randombytes';
@@ -14,8 +8,8 @@ import {
   getFileMetadata,
   resizeImageToMax,
   resizeImageToThumbnail,
+  uploadImage,
 } from 'src/utils';
-import sharp from 'sharp';
 
 @Injectable()
 export class BillboardImagesService {
@@ -34,7 +28,7 @@ export class BillboardImagesService {
 
       // resize image before uploading
       resizeImageToMax(image).then(async (result) =>
-        this.uploadImage(result, config).then((response) =>
+        uploadImage(result, config).then((response) =>
           getFileMetadata(image).then(async (medatadata) => {
             this.prisma.billboardImage
               .create({
@@ -58,7 +52,7 @@ export class BillboardImagesService {
                 // resize first image to create a thumbnail before uploading
                 if (index === 0) {
                   resizeImageToThumbnail(image).then((result) =>
-                    this.uploadImage(result, {
+                    uploadImage(result, {
                       ...config,
                       filename: `thumbnail_${config.filename}`,
                     }).then((response) =>
@@ -99,42 +93,6 @@ export class BillboardImagesService {
           }),
         ),
       );
-    });
-  }
-
-  async uploadImage(pipeline: sharp.Sharp, config?: any) {
-    const { provider } = config || {};
-
-    if (provider === 'CLOUDINARY') {
-      const options: UploadApiOptions = {
-        folder: config?.folder,
-        filename_override: config?.filename,
-        resource_type: 'image',
-        unique_filename: false,
-        use_filename: true,
-      };
-      return this.uploadImageToCloudinary(pipeline, options);
-    }
-  }
-
-  async uploadImageToCloudinary(
-    pipeline: sharp.Sharp,
-    options?: UploadApiOptions,
-  ): Promise<UploadApiResponse | UploadApiErrorResponse> {
-    return new Promise((resolve, reject) => {
-      cloudinary.config({
-        cloud_name: this.config.get<string>('CLOUD_NAME'),
-        api_key: this.config.get<string>('CLOUD_API_KEY'),
-        api_secret: this.config.get<string>('CLOUD_API_SECRET'),
-      });
-      const upload = cloudinary.uploader.upload_stream(
-        options,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        },
-      );
-      pipeline.pipe(upload);
     });
   }
 }

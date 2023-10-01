@@ -277,11 +277,11 @@ export class BillboardsService {
             userProfile: {
               select: {
                 profileImage: true,
-                contacts: {
+                userContacts: {
                   select: {
                     id: true,
                     title: true,
-                    contact: true,
+                    contacts: true,
                     type: true,
                   },
                 },

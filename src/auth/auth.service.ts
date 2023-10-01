@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -12,6 +14,7 @@ import {
   PrismaClientValidationError,
 } from '@prisma/client/runtime/library';
 import { SignUpAuthDto } from './dto/signup-auth.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -106,6 +109,54 @@ export class AuthService {
       });
 
     return { token, user };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized user');
+    }
+
+    const { oldPassword, password } = dto;
+
+    // create a hashed password
+    const hashedPassword = await this.hashPassword(password);
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: Number(userId),
+      },
+      select: {
+        id: true,
+        password: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid user');
+    }
+
+    const passwordMatches = await bcrypt.compare(oldPassword, user.password);
+
+    let updatedUser: any;
+
+    if (!passwordMatches) {
+      throw new BadRequestException('Invalid credentials');
+    } else {
+      updatedUser = await this.prisma.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          password: hashedPassword,
+        },
+      });
+    }
+
+    if (!updatedUser) {
+      throw new BadRequestException('Invalid user');
+    }
+
+    return 'Paassword updated';
   }
 
   async hashPassword(password: string) {
