@@ -19,6 +19,7 @@ import { GetCurrentUserId } from 'src/decorators/get-current-user-id.decorator';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { SearchBillboardsDto } from './dto/search-billboards.dto';
 import { PaginateInterceptor } from '../interceptors/paginate.interceptor';
+import { AnonymousAuthGuard } from '@/auth/anonymous.guard';
 
 @Controller('billboards')
 export class BillboardsController {
@@ -35,15 +36,20 @@ export class BillboardsController {
     return this.billboardsService.create(+userId, createBillboardDto, images);
   }
 
+  @UseGuards(AnonymousAuthGuard)
   @Get()
   @UseInterceptors(PaginateInterceptor)
-  findAll(@Query() searchBillboardsDto?: SearchBillboardsDto) {
-    return this.billboardsService.findAll(searchBillboardsDto);
+  findAll(
+    @GetCurrentUserId() userId: string,
+    @Query() searchBillboardsDto?: SearchBillboardsDto,
+  ) {
+    return this.billboardsService.findAll(userId, searchBillboardsDto);
   }
 
+  @UseGuards(AnonymousAuthGuard)
   @Get(':slug')
-  findOne(@Param('slug') slug: string) {
-    return this.billboardsService.findOne(slug);
+  findOne(@GetCurrentUserId() userId: string, @Param('slug') slug: string) {
+    return this.billboardsService.findOne(userId, slug);
   }
 
   @Patch(':id')

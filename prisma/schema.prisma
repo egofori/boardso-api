@@ -78,7 +78,6 @@ model Billboard {
 }
 
 model Bookmark {
-  id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt()
 
@@ -86,6 +85,8 @@ model Bookmark {
   billboardId Int
   owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   ownerId     Int
+
+   @@id([billboardId, ownerId])
 }
 
 model BillboardImage {
