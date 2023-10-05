@@ -21,7 +21,7 @@
       "@/types/*": ["./src/types/*"],
       "@/utils/*": ["./utils/*"],
       "@/decorators/*": ["./src/decorators/*"],
-      "@/interceptors/*": ["./src/decorators/*"],
+      "@/interceptors/*": ["./src/interceptors/*"],
       "@/components/*": ["./app/components/*"],
       "@/*": ["./src/*"]
     }

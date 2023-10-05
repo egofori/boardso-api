@@ -1,4 +1,8 @@
-import { NotFoundException, Injectable } from '@nestjs/common';
+import {
+  NotFoundException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateBillboardDto } from './dto/create-billboard.dto';
 import { UpdateBillboardDto } from './dto/update-billboard.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -91,7 +95,7 @@ export class BillboardsService {
     }
   }
 
-  async findAll(data?: SearchBillboardsDto) {
+  async findAll(userId: string, data?: SearchBillboardsDto) {
     const minPrice = data?.minPrice ? Number(data.minPrice) : undefined;
     const maxPrice = data?.maxPrice ? Number(data.maxPrice) : undefined;
     let width = data?.width ? Number(data.width) : undefined;
@@ -231,6 +235,15 @@ export class BillboardsService {
             },
           },
         },
+        bookmarks: {
+          where: {
+            OR: [
+              {
+                ownerId: userId ? Number(userId) : undefined,
+              },
+            ],
+          },
+        },
       },
       orderBy: this.orderBy(data?.sort),
     });
@@ -241,10 +254,16 @@ export class BillboardsService {
       where: filter,
     });
 
-    return { data: billboards, count: aggregations._count };
+    return {
+      data: billboards.map((billboard) => {
+        const { bookmarks, ...rest } = billboard;
+        return { ...rest, bookmarked: bookmarks.length > 0 };
+      }),
+      count: aggregations._count,
+    };
   }
 
-  async findOne(slug: string) {
+  async findOne(userId: string, slug: string) {
     const billboard = await this.prisma.billboard.findUnique({
       where: { slug },
       select: {
@@ -289,6 +308,15 @@ export class BillboardsService {
             },
           },
         },
+        bookmarks: {
+          where: {
+            OR: [
+              {
+                ownerId: userId ? Number(userId) : undefined,
+              },
+            ],
+          },
+        },
       },
     });
 
@@ -296,7 +324,8 @@ export class BillboardsService {
       throw new NotFoundException('Billboard does not exist');
     }
 
-    return billboard;
+    const { bookmarks, ...rest } = billboard;
+    return { ...rest, bookmarked: bookmarks.length > 0 };
   }
 
   update(id: number, updateBillboardDto: UpdateBillboardDto) {
