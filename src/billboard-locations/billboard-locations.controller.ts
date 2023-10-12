@@ -16,4 +16,14 @@ export class BillboardLocationsController {
       searchBillboardLocationDto.search,
     );
   }
+
+  @Get('/popular-places')
+  popularPlaces() {
+    return this.billboardLocationsService.popularPlaces();
+  }
+
+  @Get('/billboards')
+  locationBillboards(@Query('location') location: string) {
+    return this.billboardLocationsService.locationBillboards(location);
+  }
 }
