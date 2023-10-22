@@ -12,6 +12,9 @@ import { SignUpAuthDto } from './dto/signup-auth.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './jwt.guard';
 import { GetCurrentUserId } from '@/decorators/get-current-user-id.decorator';
+import { FirebaseAuthGuard } from './firebase-auth.guard';
+import { SignUpSocialAuthDto } from './dto/signup-social-auth.dto';
+import { SignInSocialAuthDto } from './dto/signin-social-auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -24,8 +27,21 @@ export class AuthController {
 
   @Post('local/sign-in')
   @HttpCode(HttpStatus.OK)
-  signinLocal(@Body() dto: SignInAuthDto) {
+  signInLocal(@Body() dto: SignInAuthDto) {
     return this.authService.signInLocal(dto);
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Post('social/sign-up')
+  signUpSocial(@Body() dto: SignUpSocialAuthDto) {
+    return this.authService.signUpSocial(dto);
+  }
+
+  @UseGuards(FirebaseAuthGuard)
+  @Post('social/sign-in')
+  @HttpCode(HttpStatus.OK)
+  signInSocial(@Body() dto: SignInSocialAuthDto) {
+    return this.authService.signInSocial(dto);
   }
 
   @UseGuards(JwtAuthGuard)

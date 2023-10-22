@@ -41,3 +41,6 @@ lerna-debug.log*
 #docker compose YAML file
 docker-compose.yml
 docker-compose.yaml
+
+#firebase config file
+firebaseServiceAccount.json

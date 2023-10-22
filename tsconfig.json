@@ -19,11 +19,12 @@
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "@/types/*": ["./src/types/*"],
-      "@/utils/*": ["./utils/*"],
+      "@/utils/*": ["./src/utils/*"],
       "@/decorators/*": ["./src/decorators/*"],
       "@/interceptors/*": ["./src/interceptors/*"],
       "@/components/*": ["./app/components/*"],
       "@/*": ["./src/*"]
-    }
+    },
+    "resolveJsonModule": true,
   }
 }

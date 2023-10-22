@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { PrismaService } from '../prisma/prisma.service';
 import { JWTStrategy } from './jwt.strategy';
+import { FirebaseAuthStrategy } from './firebase-auth.strategy';
 
 @Module({
   imports: [
@@ -13,8 +14,10 @@ import { JWTStrategy } from './jwt.strategy';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '7d' },
     }),
+    PassportModule.register({ defaultStrategy: 'firebase-jwt' }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, JWTStrategy],
+  providers: [AuthService, PrismaService, JWTStrategy, FirebaseAuthStrategy],
+  exports: [PassportModule],
 })
 export class AuthModule {}
