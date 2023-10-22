@@ -20,7 +20,7 @@ model User {
   zipCode     String?
   phone       String?
   email       String?      @unique
-  password    String
+  password    String?
   username    String       @unique
   confirmed   Boolean?     @default(false)
   billboards  Billboard[]
