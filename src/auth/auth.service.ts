@@ -17,6 +17,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { firebaseAuth } from '@/utils/firebase';
 import { SignInSocialAuthDto } from './dto/signin-social-auth.dto';
 import { SignUpSocialAuthDto } from './dto/signup-social-auth.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -262,6 +263,28 @@ export class AuthService {
     return { token, user };
   }
 
+  async resetPassword(firebaseUser: any, dto: ResetPasswordDto) {
+    const { email } = firebaseUser;
+    const { password } = dto;
+    // create a hashed password
+    const hashedPassword = await this.hashPassword(password);
+
+    const updatedUser = await this.prisma.user.update({
+      where: {
+        email,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    if (!updatedUser) {
+      throw new BadRequestException('Invalid user');
+    }
+
+    return 'Password updated';
+  }
+
   async changePassword(userId: string, dto: ChangePasswordDto) {
     if (!userId) {
       throw new UnauthorizedException('Unauthorized user');
@@ -307,7 +330,7 @@ export class AuthService {
       throw new BadRequestException('Invalid user');
     }
 
-    return 'Paassword updated';
+    return 'Password updated';
   }
 
   async hashPassword(password: string) {
