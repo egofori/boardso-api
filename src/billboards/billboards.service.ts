@@ -1,7 +1,7 @@
 import {
   NotFoundException,
   Injectable,
-  UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { CreateBillboardDto } from './dto/create-billboard.dto';
 import { UpdateBillboardDto } from './dto/update-billboard.dto';
@@ -11,6 +11,8 @@ import { randomBytes } from 'crypto';
 import slugify from 'slugify';
 import { SearchBillboardsDto } from './dto/search-billboards.dto';
 import { Prisma } from '@prisma/client';
+import { GetBillboardDto } from './dto/get-billboard.dto';
+import { deleteImage } from '../utils';
 
 @Injectable()
 export class BillboardsService {
@@ -25,9 +27,9 @@ export class BillboardsService {
     images: Array<Express.Multer.File>,
   ) {
     const { title } = data;
-    const randomSuffix = randomBytes(6).toString('hex');
+    const randomSuffix = randomBytes(16).toString('hex');
     const titleSlug = slugify(title, {
-      replacement: '_',
+      replacement: '-',
       lower: true,
       strict: true,
       locale: 'en',
@@ -49,7 +51,7 @@ export class BillboardsService {
           ownerId: userId,
           title: data.title,
           description: data.description,
-          slug: `${titleSlug}_${randomSuffix}`,
+          slug: `${titleSlug}-${randomSuffix}`,
           type: data.type,
           price: +data.price,
           currency: data.currency,
@@ -73,9 +75,10 @@ export class BillboardsService {
           },
         },
       })
-      .then((billboard) =>
-        this.billboardImages.uploadImages(billboard, images),
-      );
+      .then((billboard) => this.billboardImages.uploadImages(billboard, images))
+      .catch(() => {
+        throw new BadRequestException();
+      });
   }
 
   orderBy(
@@ -205,6 +208,7 @@ export class BillboardsService {
         updateAt: true,
         currency: true,
         id: true,
+        uid: true,
         slug: true,
         title: true,
         description: true,
@@ -263,76 +267,174 @@ export class BillboardsService {
     };
   }
 
-  async findOne(userId: string, slug: string) {
-    const billboard = await this.prisma.billboard.findUnique({
-      where: { slug },
-      select: {
-        currency: true,
-        description: true,
-        height: true,
-        images: true,
-        id: true,
-        rate: true,
-        slug: true,
-        thumbnailId: true,
-        status: true,
-        title: true,
-        type: true,
-        updateAt: true,
-        width: true,
-        price: true,
-        billboardLocation: {
-          select: {
-            address: true,
-            lat: true,
-            lng: true,
-          },
+  async findOne(userId: string, getBillboardDto: GetBillboardDto) {
+    const { slug, uid } = getBillboardDto;
+    let billboard = null;
+    const select = {
+      currency: true,
+      description: true,
+      height: true,
+      images: true,
+      id: true,
+      uid: true,
+      rate: true,
+      slug: true,
+      thumbnailId: true,
+      status: true,
+      title: true,
+      type: true,
+      updateAt: true,
+      width: true,
+      price: true,
+      billboardLocation: {
+        select: {
+          address: true,
+          lat: true,
+          lng: true,
+          route: true,
+          neighbourhood: true,
+          sublocality: true,
+          locality: true,
+          administrativeAreaLevel3: true,
+          administrativeAreaLevel2: true,
+          administrativeAreaLevel1: true,
+          country: true,
         },
-        owner: {
-          select: {
-            firstName: true,
-            lastName: true,
-            username: true,
-            userProfile: {
-              select: {
-                profileImage: true,
-                userContacts: {
-                  select: {
-                    id: true,
-                    title: true,
-                    contacts: true,
-                    type: true,
-                  },
+      },
+      owner: {
+        select: {
+          firstName: true,
+          lastName: true,
+          username: true,
+          userProfile: {
+            select: {
+              profileImage: true,
+              userContacts: {
+                select: {
+                  id: true,
+                  title: true,
+                  contacts: true,
+                  type: true,
                 },
               },
             },
           },
         },
-        bookmarks: {
-          where: {
-            OR: [
-              {
-                ownerId: userId ? Number(userId) : undefined,
-              },
-            ],
+      },
+    };
+    if (slug) {
+      billboard = await this.prisma.billboard.findUnique({
+        where: { slug },
+        select: {
+          ...select,
+          bookmarks: {
+            where: {
+              OR: [
+                {
+                  ownerId: userId ? Number(userId) : undefined,
+                },
+              ],
+            },
           },
         },
-      },
-    });
+      });
+    } else if (uid && userId) {
+      billboard = await this.prisma.billboard.findUnique({
+        where: { uid },
+        select,
+      });
+    }
 
     if (!billboard) {
       throw new NotFoundException('Billboard does not exist');
     }
 
     const { bookmarks, ...rest } = billboard;
-    return { ...rest, bookmarked: bookmarks.length > 0 };
+    if (bookmarks) {
+      return { ...rest, bookmarked: bookmarks.length > 0 };
+    } else {
+      return billboard;
+    }
   }
 
-  update(id: number, updateBillboardDto: UpdateBillboardDto) {
-    return `This action updates a #${id} billboard`;
+  async update(
+    userId: string,
+    id: string,
+    data: UpdateBillboardDto,
+    images: Array<Express.Multer.File>,
+  ) {
+    const { title } = data;
+    const randomSuffix = randomBytes(16).toString('hex');
+    const titleSlug = slugify(title, {
+      replacement: '-',
+      lower: true,
+      strict: true,
+      locale: 'en',
+    });
+
+    const location = JSON.parse(data.location);
+
+    let width = +data.width;
+    let height = +data.height;
+
+    if (data.dimensionUnit === 'METERS') {
+      width = width * 3.28084;
+      height = height * 3.28084;
+    }
+
+    return this.prisma.billboard
+      .update({
+        where: { id: Number(id), ownerId: Number(userId) },
+        data: {
+          title: data.title,
+          description: data.description,
+          slug: `${titleSlug}-${randomSuffix}`,
+          type: data.type,
+          price: +data.price,
+          currency: data.currency,
+          rate: data.rate,
+          width: width,
+          height: height,
+          billboardLocation: {
+            update: {
+              route: location?.route,
+              neighbourhood: location?.neighbourhood,
+              sublocality: location?.sublocality,
+              locality: location?.locality,
+              administrativeAreaLevel3: location?.administrativeAreaLevel3,
+              administrativeAreaLevel2: location?.administrativeAreaLevel2,
+              administrativeAreaLevel1: location?.administrativeAreaLevel1,
+              country: location?.country,
+              address: location?.address,
+              lat: location?.coordinates.lat,
+              lng: location?.coordinates.lng,
+            },
+          },
+          thumbnailId: null,
+        },
+        include: {
+          images: true,
+        },
+      })
+      .then((billboard) => {
+        this.billboardImages.deleteBillboardImages(billboard);
+        this.billboardImages.uploadImages(billboard, images);
+      });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} billboard`;
+  remove(userId: string, id: string) {
+    this.prisma.billboard
+      .delete({
+        where: { id: Number(id), ownerId: Number(userId) },
+        include: {
+          images: true,
+        },
+      })
+      .then((billboard) => {
+        billboard.images.forEach((image) => deleteImage(image));
+      })
+      .catch(() => {
+        throw new BadRequestException();
+      });
   }
 }

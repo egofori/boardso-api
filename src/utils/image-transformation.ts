@@ -1,14 +1,12 @@
 import * as toStream from 'buffer-to-stream';
-import {
-  v2 as cloudinary,
-  UploadApiErrorResponse,
-  UploadApiOptions,
-  UploadApiResponse,
-} from 'cloudinary';
+import { UploadApiOptions } from 'cloudinary';
 import * as sharp from 'sharp';
-import { ConfigService } from '@nestjs/config';
-
-const config = new ConfigService();
+import { BillboardImage } from '@prisma/client';
+import { deleteImagesFromS3, uploadImageToS3 } from './aws-s3';
+import {
+  deleteImageFromCloudinary,
+  uploadImageToCloudinary,
+} from './cloudinary';
 
 // get image information
 export const getFileMetadata = (file: Express.Multer.File) =>
@@ -70,38 +68,34 @@ export const optimizeImage = async (file: Express.Multer.File) =>
     return toStream(file.buffer).pipe(pipeline);
   });
 
-export const uploadImage = async (pipeline: sharp.Sharp, config?: any) => {
+export const uploadImage = async (pipeline: sharp.Sharp, config: any) => {
   const { provider } = config || {};
 
   if (provider === 'CLOUDINARY') {
     const options: UploadApiOptions = {
-      folder: config?.folder,
-      filename_override: config?.filename,
+      folder: config.folder,
+      filename_override: config.filename,
       resource_type: 'image',
       unique_filename: false,
       use_filename: true,
     };
     return uploadImageToCloudinary(pipeline, options);
+  } else if (provider === 'AWS_S3') {
+    return uploadImageToS3(pipeline, config);
   }
 };
 
-export const uploadImageToCloudinary = async (
-  pipeline: sharp.Sharp,
-  options?: UploadApiOptions,
-): Promise<UploadApiResponse | UploadApiErrorResponse> => {
-  return new Promise((resolve, reject) => {
-    cloudinary.config({
-      cloud_name: config.get<string>('CLOUD_NAME'),
-      api_key: config.get<string>('CLOUD_API_KEY'),
-      api_secret: config.get<string>('CLOUD_API_SECRET'),
-    });
-    const upload = cloudinary.uploader.upload_stream(
-      options,
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      },
-    );
-    pipeline.pipe(upload);
-  });
+export const deleteImage = async (billboardImage: BillboardImage) => {
+  switch (billboardImage.provider) {
+    case 'AWS_S3':
+      const providerMetadata = billboardImage.providerMetadata as {
+        key: string;
+      };
+      deleteImagesFromS3([{ Key: providerMetadata?.key }]);
+      break;
+    case 'CLOUDINARY':
+      deleteImageFromCloudinary(billboardImage);
+    default:
+      break;
+  }
 };
