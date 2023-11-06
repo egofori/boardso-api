@@ -57,6 +57,7 @@ model Billboard {
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt()
 
+  uid               String             @unique @default(uuid())
   title             String
   slug              String             @unique
   description       String?
@@ -86,7 +87,7 @@ model Bookmark {
   owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   ownerId     Int
 
-   @@id([billboardId, ownerId])
+  @@id([billboardId, ownerId])
 }
 
 model BillboardImage {

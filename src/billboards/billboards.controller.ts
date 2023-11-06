@@ -20,6 +20,7 @@ import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { SearchBillboardsDto } from './dto/search-billboards.dto';
 import { PaginateInterceptor } from '../interceptors/paginate.interceptor';
 import { AnonymousAuthGuard } from '@/auth/anonymous.guard';
+import { GetBillboardDto } from './dto/get-billboard.dto';
 
 @Controller('billboards')
 export class BillboardsController {
@@ -47,21 +48,34 @@ export class BillboardsController {
   }
 
   @UseGuards(AnonymousAuthGuard)
-  @Get(':slug')
-  findOne(@GetCurrentUserId() userId: string, @Param('slug') slug: string) {
-    return this.billboardsService.findOne(userId, slug);
+  @Get('billboard')
+  findOne(
+    @GetCurrentUserId() userId: string,
+    @Query() getBillboardDto: GetBillboardDto,
+  ) {
+    return this.billboardsService.findOne(userId, getBillboardDto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @UseInterceptors(FilesInterceptor('images', 5))
   update(
     @Param('id') id: string,
     @Body() updateBillboardDto: UpdateBillboardDto,
+    @GetCurrentUserId() userId: string,
+    @UploadedFiles() images: Array<Express.Multer.File>,
   ) {
-    return this.billboardsService.update(+id, updateBillboardDto);
+    return this.billboardsService.update(
+      userId,
+      id,
+      updateBillboardDto,
+      images,
+    );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.billboardsService.remove(+id);
+  remove(@GetCurrentUserId() userId: string, @Param('id') id: string) {
+    return this.billboardsService.remove(userId, id);
   }
 }

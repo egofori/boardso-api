@@ -155,7 +155,7 @@ export class UsersService {
       throw new UnauthorizedException();
     }
 
-    const imageBaseName = randomBytes(8).toString('hex');
+    const imageBaseName = randomBytes(16).toString('hex');
     const extension = path.extname(image.originalname);
 
     const config: Record<string, unknown> = {
