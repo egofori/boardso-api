@@ -33,11 +33,26 @@ model UserProfile {
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt()
 
-  profileImage String?
+  profileImage ProfileImage?
   about        String?
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId       Int           @unique
   userContacts UserContact[]
+}
+
+model ProfileImage {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  name             String
+  extension        String
+  url              String
+  mime             String
+  provider         Provider    @default(AWS_S3)
+  providerMetadata Json?
+  userProfile      UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userProfileId    Int         @unique
 }
 
 model UserContact {

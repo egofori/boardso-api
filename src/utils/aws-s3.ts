@@ -9,7 +9,7 @@ import sharp from 'sharp';
 const configService = new ConfigService();
 
 const s3Client = new S3Client({
-  region: configService.getOrThrow('AWS_S3_REGION'),
+  region: configService.get('AWS_S3_REGION'),
 });
 
 export const uploadImageToS3 = async (pipeline: sharp.Sharp, options: any) => {

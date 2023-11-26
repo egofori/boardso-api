@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Billboard, BillboardImage } from '@prisma/client';
+import { Billboard, BillboardImage, Provider } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as randomBytes from 'randombytes';
@@ -15,21 +15,26 @@ import {
 export class BillboardImagesService {
   constructor(private config: ConfigService, private prisma: PrismaService) {}
 
+  provider: Provider =
+    this.config.getOrThrow<string>('NODE_ENV') === 'production'
+      ? 'AWS_S3'
+      : 'CLOUDINARY';
+
   async uploadImages(billboard: Billboard, images: Array<Express.Multer.File>) {
     images?.forEach((image, index) => {
       const imageBaseName = randomBytes(16).toString('hex');
       const extension = path.extname(image.originalname);
 
-      const config: Record<string, string> = {
+      const options: any = {
         folder: `billboards`,
         filename: `${imageBaseName}${extension}`,
-        provider: 'AWS_S3',
+        provider: this.provider,
       };
 
       // resize image before uploading
       resizeImageToMax(image)
         .then(async (result) =>
-          uploadImage(result, config)
+          uploadImage(result, options)
             .then(async (response) => {
               try {
                 const metadata = await result.metadata();
@@ -43,7 +48,7 @@ export class BillboardImagesService {
                     url: response.url,
                     size: metadata.size,
                     billboardId: billboard.id,
-                    provider: 'AWS_S3',
+                    provider: options.provider,
                     providerMetadata: response?.providerMetadata,
                   },
                 });
@@ -62,8 +67,8 @@ export class BillboardImagesService {
         resizeImageToThumbnail(image)
           .then((result) =>
             uploadImage(result, {
-              ...config,
-              filename: `thumbnail_${config.filename}`,
+              ...options,
+              filename: `thumbnail_${options.filename}`,
             })
               .then(async (response) => {
                 try {
@@ -80,7 +85,7 @@ export class BillboardImagesService {
                         url: response.url,
                         size: metadata.size,
                         billboardId: billboard.id,
-                        provider: 'AWS_S3',
+                        provider: options.provider,
                         providerMetadata: response?.providerMetadata,
                       },
                     })
