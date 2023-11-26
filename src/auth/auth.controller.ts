@@ -17,6 +17,7 @@ import { SignUpSocialAuthDto } from './dto/signup-social-auth.dto';
 import { SignInSocialAuthDto } from './dto/signin-social-auth.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GetCurrentFirebaseUser } from '@/decorators/get-current-firebase-user-id.decorator';
+import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 
 @Controller('auth')
 export class AuthController {
@@ -50,7 +51,7 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   resetPassword(
-    @GetCurrentFirebaseUser() firebaseUser: any,
+    @GetCurrentFirebaseUser() firebaseUser: DecodedIdToken,
     @Body() dto: ResetPasswordDto,
   ) {
     return this.authService.resetPassword(firebaseUser, dto);

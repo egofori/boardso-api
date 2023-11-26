@@ -5,7 +5,7 @@ import {
   UploadApiOptions,
 } from 'cloudinary';
 import { ConfigService } from '@nestjs/config';
-import { BillboardImage } from '@prisma/client';
+
 const config = new ConfigService();
 
 export const uploadImageToCloudinary = async (
@@ -37,12 +37,9 @@ export const uploadImageToCloudinary = async (
   });
 };
 
-export const deleteImageFromCloudinary = async (
-  billboardImage: BillboardImage,
-) => {
+export const deleteImageFromCloudinary = async (providerMetadata: any) => {
   try {
-    const { resourceType, publicId }: any =
-      billboardImage.providerMetadata ?? {};
+    const { resourceType, publicId }: any = providerMetadata ?? {};
     const deleteConfig = {
       resource_type: (resourceType || 'image') as string,
       invalidate: true,

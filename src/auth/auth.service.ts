@@ -18,6 +18,7 @@ import { firebaseAuth } from '@/utils/firebase';
 import { SignInSocialAuthDto } from './dto/signin-social-auth.dto';
 import { SignUpSocialAuthDto } from './dto/signup-social-auth.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 
 @Injectable()
 export class AuthService {
@@ -263,7 +264,7 @@ export class AuthService {
     return { token, user };
   }
 
-  async resetPassword(firebaseUser: any, dto: ResetPasswordDto) {
+  async resetPassword(firebaseUser: DecodedIdToken, dto: ResetPasswordDto) {
     const { email } = firebaseUser;
     const { password } = dto;
     // create a hashed password

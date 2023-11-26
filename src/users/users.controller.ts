@@ -7,15 +7,12 @@ import {
   Param,
   Delete,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetCurrentUserId } from '@/decorators/get-current-user-id.decorator';
 import { JwtAuthGuard } from '@/auth/jwt.guard';
-import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
 export class UsersController {
@@ -46,18 +43,9 @@ export class UsersController {
     return this.usersService.update(userId, updateUserDto);
   }
 
-  @UseInterceptors(FileInterceptor('image'))
   @UseGuards(JwtAuthGuard)
-  @Patch('profile-image')
-  updateProfileImage(
-    @GetCurrentUserId() userId: string,
-    @UploadedFile() image: Express.Multer.File,
-  ) {
-    return this.usersService.updateProfileImage(userId, image);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  @Delete()
+  remove(@GetCurrentUserId() userId: string) {
+    return this.usersService.remove(userId);
   }
 }

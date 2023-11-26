@@ -33,22 +33,19 @@ export class UserContactsController {
     return this.userContactsService.findAll(userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userContactsService.findOne(+id);
-  }
-
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateUserContactDto: UpdateUserContactDto,
+    @GetCurrentUserId() userId: string,
   ) {
-    return this.userContactsService.update(+id, updateUserContactDto);
+    return this.userContactsService.update(userId, id, updateUserContactDto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userContactsService.remove(+id);
+  remove(@Param('id') id: string, @GetCurrentUserId() userId: string) {
+    return this.userContactsService.remove(userId, id);
   }
 }

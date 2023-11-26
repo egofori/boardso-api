@@ -1,7 +1,6 @@
 import * as toStream from 'buffer-to-stream';
 import { UploadApiOptions } from 'cloudinary';
 import * as sharp from 'sharp';
-import { BillboardImage } from '@prisma/client';
 import { deleteImagesFromS3, uploadImageToS3 } from './aws-s3';
 import {
   deleteImageFromCloudinary,
@@ -33,29 +32,36 @@ export const MAX_IMAGE_SIZE: sharp.ResizeOptions = {
 export const resizeImageTo = (
   file: Express.Multer.File,
   options?: sharp.ResizeOptions,
-) => optimizeImage(file).then((result) => result.pipe(sharp().resize(options)));
+) =>
+  optimizeImage(file)
+    .then((result) => result.pipe(sharp().resize(options)))
+    .catch((err) => err);
 
 export const resizeImageToThumbnail = (file: Express.Multer.File) =>
-  getFileMetadata(file).then((result: sharp.Metadata) => {
-    if (
-      result.width > THUMBNAIL_SIZE.width ||
-      result.height > THUMBNAIL_SIZE.height
-    )
-      return resizeImageTo(file, THUMBNAIL_SIZE);
+  getFileMetadata(file)
+    .then((result: sharp.Metadata) => {
+      if (
+        result.width > THUMBNAIL_SIZE.width ||
+        result.height > THUMBNAIL_SIZE.height
+      )
+        return resizeImageTo(file, THUMBNAIL_SIZE);
 
-    return optimizeImage(file);
-  });
+      return optimizeImage(file);
+    })
+    .catch((err) => err);
 
 export const resizeImageToMax = (file: Express.Multer.File) =>
-  getFileMetadata(file).then((result: sharp.Metadata) => {
-    if (
-      result.width > MAX_IMAGE_SIZE.width ||
-      result.height > MAX_IMAGE_SIZE.height
-    )
-      return resizeImageTo(file, MAX_IMAGE_SIZE);
+  getFileMetadata(file)
+    .then((result: sharp.Metadata) => {
+      if (
+        result.width > MAX_IMAGE_SIZE.width ||
+        result.height > MAX_IMAGE_SIZE.height
+      )
+        return resizeImageTo(file, MAX_IMAGE_SIZE);
 
-    return optimizeImage(file);
-  });
+      return optimizeImage(file);
+    })
+    .catch((err) => err);
 
 export const optimizeImage = async (file: Express.Multer.File) =>
   getFileMetadata(file).then((result: sharp.Metadata) => {
@@ -79,22 +85,24 @@ export const uploadImage = async (pipeline: sharp.Sharp, config: any) => {
       unique_filename: false,
       use_filename: true,
     };
-    return uploadImageToCloudinary(pipeline, options);
+    return await uploadImageToCloudinary(pipeline, options);
   } else if (provider === 'AWS_S3') {
-    return uploadImageToS3(pipeline, config);
+    return await uploadImageToS3(pipeline, config);
   }
 };
 
-export const deleteImage = async (billboardImage: BillboardImage) => {
-  switch (billboardImage.provider) {
+export const deleteImage = async (imageData: {
+  provider: string;
+  providerMetadata: any;
+  [x: string]: any;
+}) => {
+  const { provider, providerMetadata } = imageData || {};
+
+  switch (provider) {
     case 'AWS_S3':
-      const providerMetadata = billboardImage.providerMetadata as {
-        key: string;
-      };
-      deleteImagesFromS3([{ Key: providerMetadata?.key }]);
-      break;
+      return await deleteImagesFromS3([{ Key: providerMetadata?.key }]);
     case 'CLOUDINARY':
-      deleteImageFromCloudinary(billboardImage);
+      return await deleteImageFromCloudinary(providerMetadata);
     default:
       break;
   }

@@ -8,11 +8,15 @@ import { BillboardLocationsModule } from './billboard-locations/billboard-locati
 import { UsersModule } from './users/users.module';
 import { UserContactsModule } from './user-contacts/user-contacts.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
+import { ProfileImagesModule } from './profile-images/profile-images.module';
 
 @Module({
   imports: [
     AuthModule,
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
     PrismaModule,
     BillboardsModule,
     BillboardImagesModule,
@@ -20,6 +24,7 @@ import { BookmarksModule } from './bookmarks/bookmarks.module';
     UsersModule,
     UserContactsModule,
     BookmarksModule,
+    ProfileImagesModule,
   ],
 })
 export class AppModule {}

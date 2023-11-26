@@ -8,9 +8,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FindUserDto } from './dto/find-user.dto';
-import { resizeImageToThumbnail, uploadImage } from '@/utils';
-import * as randomBytes from 'randombytes';
-import * as path from 'path';
+import { deleteImage } from '@/utils';
 
 @Injectable()
 export class UsersService {
@@ -47,7 +45,11 @@ export class UsersService {
               },
             },
             about: true,
-            profileImage: true,
+            profileImage: {
+              select: {
+                url: true,
+              },
+            },
           },
         },
       },
@@ -100,7 +102,7 @@ export class UsersService {
     if (!userId) {
       throw new UnauthorizedException();
     }
-
+    console.log('about', data?.about);
     const updatedUser = await this.prisma.user.update({
       where: {
         id: Number(userId),
@@ -110,11 +112,16 @@ export class UsersService {
         lastName: data?.lastName,
         username: data?.username,
         userProfile: {
-          connect: {
-            userId: Number(userId),
-          },
-          update: {
-            about: data?.about,
+          upsert: {
+            where: {
+              userId: Number(userId),
+            },
+            create: {
+              about: data?.about,
+            },
+            update: {
+              about: data?.about,
+            },
           },
         },
       },
@@ -150,45 +157,29 @@ export class UsersService {
     return updatedUser;
   }
 
-  async updateProfileImage(userId: string, image: Express.Multer.File) {
-    if (!userId) {
-      throw new UnauthorizedException();
-    }
-
-    const imageBaseName = randomBytes(16).toString('hex');
-    const extension = path.extname(image.originalname);
-
-    const config: Record<string, unknown> = {
-      folder: `profileImages`,
-      filename: `${imageBaseName}${extension}`,
-      provider: 'CLOUDINARY',
-    };
-
-    resizeImageToThumbnail(image).then((result) =>
-      uploadImage(result, {
-        ...config,
-        filename: config.filename,
-      }).then((response) =>
-        this.prisma.user.update({
-          where: {
-            id: Number(userId),
-          },
-          data: {
-            userProfile: {
-              connect: {
-                userId: Number(userId),
-              },
-              update: {
-                profileImage: response.secure_url,
-              },
+  async remove(userId: string) {
+    await this.prisma.user
+      .delete({
+        where: { id: Number(userId) },
+        include: {
+          billboards: { include: { images: true } },
+          userProfile: {
+            include: {
+              profileImage: true,
             },
           },
-        }),
-      ),
-    );
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+        },
+      })
+      .then(async (user) => {
+        // delete media
+        await deleteImage(user?.userProfile?.profileImage);
+        user?.billboards?.forEach((billboard) => {
+          billboard?.images?.forEach(async (image) => await deleteImage(image));
+        });
+      })
+      .catch((err) => {
+        console.log('err', err);
+        throw new BadRequestException(err);
+      });
   }
 }
