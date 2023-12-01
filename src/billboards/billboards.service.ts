@@ -416,9 +416,16 @@ export class BillboardsService {
           images: true,
         },
       })
-      .then((billboard) => {
-        this.billboardImages.deleteBillboardImages(billboard);
-        this.billboardImages.uploadImages(billboard, images);
+      .then(async (billboard) => {
+        return this.billboardImages
+          .deleteBillboardImages(billboard)
+          .then(async () => {
+            await this.billboardImages.uploadImages(billboard, images);
+          })
+          .catch((err) => err);
+      })
+      .catch(() => {
+        throw new BadRequestException();
       });
   }
 

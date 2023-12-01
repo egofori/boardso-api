@@ -144,6 +144,7 @@ model BillboardLocation {
 }
 
 enum Provider {
+  GCS
   AWS_S3
   CLOUDINARY
   LOCAL

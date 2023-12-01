@@ -6,6 +6,7 @@ import {
   deleteImageFromCloudinary,
   uploadImageToCloudinary,
 } from './cloudinary';
+import { deleteImageFromGCS, uploadImageToGCS } from './google-storage';
 
 // get image information
 export const getFileMetadata = (file: Express.Multer.File) =>
@@ -88,6 +89,8 @@ export const uploadImage = async (pipeline: sharp.Sharp, config: any) => {
     return await uploadImageToCloudinary(pipeline, options);
   } else if (provider === 'AWS_S3') {
     return await uploadImageToS3(pipeline, config);
+  } else if (provider === 'GCS') {
+    return await uploadImageToGCS(pipeline, config);
   }
 };
 
@@ -103,6 +106,8 @@ export const deleteImage = async (imageData: {
       return await deleteImagesFromS3([{ Key: providerMetadata?.key }]);
     case 'CLOUDINARY':
       return await deleteImageFromCloudinary(providerMetadata);
+    case 'GCS':
+      return await deleteImageFromGCS(providerMetadata);
     default:
       break;
   }
