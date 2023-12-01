@@ -40,3 +40,6 @@ lerna-debug.log*
 
 #firebase config file
 firebaseServiceAccount.json
+
+# GCS config file
+gcsServiceAccount.json

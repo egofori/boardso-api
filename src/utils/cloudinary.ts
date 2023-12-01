@@ -24,7 +24,7 @@ export const uploadImageToCloudinary = async (
       options,
       (error, result) => {
         if (error) return reject(error);
-        resolve({
+        return resolve({
           url: result.secure_url,
           providerMetadata: {
             resourceType: result.resource_type,

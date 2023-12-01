@@ -17,7 +17,7 @@ export class ProfileImagesService {
 
   provider: Provider =
     this.config.getOrThrow<string>('NODE_ENV') === 'production'
-      ? 'AWS_S3'
+      ? 'GCS'
       : 'CLOUDINARY';
 
   async updateProfileImage(userId: string, image: Express.Multer.File) {
