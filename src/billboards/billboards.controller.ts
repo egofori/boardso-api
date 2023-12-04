@@ -21,6 +21,7 @@ import { SearchBillboardsDto } from './dto/search-billboards.dto';
 import { PaginateInterceptor } from '../interceptors/paginate.interceptor';
 import { AnonymousAuthGuard } from '@/auth/anonymous.guard';
 import { GetBillboardDto } from './dto/get-billboard.dto';
+import { imageValidator } from '@/utils/constants';
 
 @Controller('billboards')
 export class BillboardsController {
@@ -31,7 +32,8 @@ export class BillboardsController {
   @UseInterceptors(FilesInterceptor('images', 5))
   create(
     @Body() createBillboardDto: CreateBillboardDto,
-    @UploadedFiles() images: Array<Express.Multer.File>,
+    @UploadedFiles(imageValidator)
+    images: Array<Express.Multer.File>,
     @GetCurrentUserId() userId: string,
   ) {
     return this.billboardsService.create(+userId, createBillboardDto, images);
@@ -63,7 +65,8 @@ export class BillboardsController {
     @Param('id') id: string,
     @Body() updateBillboardDto: UpdateBillboardDto,
     @GetCurrentUserId() userId: string,
-    @UploadedFiles() images: Array<Express.Multer.File>,
+    @UploadedFiles(imageValidator)
+    images: Array<Express.Multer.File>,
   ) {
     return this.billboardsService.update(
       userId,
