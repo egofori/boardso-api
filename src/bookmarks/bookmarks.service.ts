@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -14,10 +10,6 @@ export class BookmarksService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createBookmarkDto: CreateBookmarkDto) {
-    if (!userId) {
-      throw new UnauthorizedException();
-    }
-
     const bookmark = await this.prisma.bookmark.create({
       data: {
         billboardId: Number(createBookmarkDto.billboardId),
@@ -89,10 +81,6 @@ export class BookmarksService {
   }
 
   async findAll(userId: string, data: FindBookmarksDto) {
-    if (!userId) {
-      throw new UnauthorizedException();
-    }
-
     const filter: Prisma.BookmarkWhereInput = {
       ownerId: Number(userId),
     };
@@ -163,10 +151,6 @@ export class BookmarksService {
   }
 
   async remove(userId: string, removeBookmarkDto: RemoveBookmarkDto) {
-    if (!userId) {
-      throw new UnauthorizedException();
-    }
-
     const bookmark = await this.prisma.bookmark.delete({
       where: {
         billboardId_ownerId: {
