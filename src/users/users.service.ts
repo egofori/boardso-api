@@ -2,13 +2,13 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FindUserDto } from './dto/find-user.dto';
 import { deleteImage } from '@/utils';
+import { firebaseAuth } from '@/utils/firebase';
 
 @Injectable()
 export class UsersService {
@@ -19,10 +19,6 @@ export class UsersService {
   }
 
   async findOne(userId: string) {
-    if (!userId) {
-      throw new UnauthorizedException();
-    }
-
     const user = await this.prisma.user.findUnique({
       where: {
         id: Number(userId),
@@ -99,10 +95,6 @@ export class UsersService {
   }
 
   async update(userId: string, data: UpdateUserDto) {
-    if (!userId) {
-      throw new UnauthorizedException();
-    }
-    console.log('about', data?.about);
     const updatedUser = await this.prisma.user.update({
       where: {
         id: Number(userId),
@@ -171,14 +163,29 @@ export class UsersService {
         },
       })
       .then(async (user) => {
-        // delete media
-        await deleteImage(user?.userProfile?.profileImage);
-        user?.billboards?.forEach((billboard) => {
-          billboard?.images?.forEach(async (image) => await deleteImage(image));
-        });
+        try {
+          // delete media
+          await deleteImage(user?.userProfile?.profileImage);
+          user?.billboards?.forEach((billboard) => {
+            billboard?.images?.forEach(
+              async (image) => await deleteImage(image),
+            );
+          });
+
+          // delete from firebase
+          if (user.email) {
+            await firebaseAuth
+              .getUserByEmail(user.email)
+              .then(
+                async (firebaseUser) =>
+                  await firebaseAuth.deleteUser(firebaseUser.uid),
+              );
+          }
+        } catch (err) {
+          throw new BadRequestException(err);
+        }
       })
       .catch((err) => {
-        console.log('err', err);
         throw new BadRequestException(err);
       });
   }

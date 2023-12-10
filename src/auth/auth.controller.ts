@@ -23,11 +23,13 @@ import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @UseGuards(FirebaseAuthGuard)
   @Post('local/sign-up')
   signUp(@Body() dto: SignUpAuthDto) {
     return this.authService.signUpLocal(dto);
   }
 
+  @UseGuards(FirebaseAuthGuard)
   @Post('local/sign-in')
   @HttpCode(HttpStatus.OK)
   signInLocal(@Body() dto: SignInAuthDto) {

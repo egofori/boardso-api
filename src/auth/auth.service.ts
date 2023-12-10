@@ -33,7 +33,13 @@ export class AuthService {
     // add user to the database
     await this.prisma.user
       .create({
-        data: { ...data, password: hashedPassword },
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          username: data.username,
+          password: hashedPassword,
+        },
         select: {
           id: true,
           email: true,
@@ -287,10 +293,6 @@ export class AuthService {
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
-    if (!userId) {
-      throw new UnauthorizedException('Unauthorized user');
-    }
-
     const { oldPassword, password } = dto;
 
     // create a hashed password
@@ -303,6 +305,7 @@ export class AuthService {
       select: {
         id: true,
         password: true,
+        email: true,
       },
     });
 
@@ -310,25 +313,42 @@ export class AuthService {
       throw new BadRequestException('Invalid user');
     }
 
-    const passwordMatches = await bcrypt.compare(oldPassword, user.password);
+    if (!user.email) {
+      throw new BadRequestException('User must have an email address');
+    }
 
-    let updatedUser: any;
+    let passwordMatches = false;
+
+    // check if user has no password associated to their account
+    if (!oldPassword && user.password === null) {
+      passwordMatches = true;
+    } else {
+      passwordMatches = await bcrypt.compare(oldPassword, user.password);
+    }
 
     if (!passwordMatches) {
       throw new BadRequestException('Invalid credentials');
     } else {
-      updatedUser = await this.prisma.user.update({
-        where: {
-          id: user.id,
-        },
-        data: {
-          password: hashedPassword,
-        },
-      });
-    }
+      try {
+        // update firebase user password
+        await firebaseAuth
+          .getUserByEmail(user.email)
+          .then(async (firebaseUser) => {
+            await firebaseAuth.updateUser(firebaseUser.uid, { password });
+          });
 
-    if (!updatedUser) {
-      throw new BadRequestException('Invalid user');
+        // update local user password
+        await this.prisma.user.update({
+          where: {
+            id: user.id,
+          },
+          data: {
+            password: hashedPassword,
+          },
+        });
+      } catch {
+        throw new BadRequestException('Could not update password');
+      }
     }
 
     return 'Password updated';
