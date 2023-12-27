@@ -5,6 +5,7 @@ export const imageValidator = new ParseFilePipeBuilder()
     fileType: /(jpeg|jpg|png)/,
   })
   .addMaxSizeValidator({
-    maxSize: 2000000,
+    // 5 MB
+    maxSize: 5 * 1024 ** 2,
   })
   .build();
