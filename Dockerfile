@@ -23,6 +23,13 @@ ENV NODE_ENV development
 
 CMD ["npm", "run", "start:migrate:dev"]
 
+# development
+FROM base as staging
+
+ENV NODE_ENV development
+
+CMD ["npm", "run", "start:migrate:staging"]
+
 # production
 FROM base as prod
 

@@ -33,7 +33,40 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  
+
+  # staging 
+  boardso-api-staging:
+    container_name: boardso-api-staging
+    image: egofori/boardso-api-staging:1.0.0
+    build:
+      context: .
+      target: staging
+    restart: always
+    ports:
+      - '3334:3333'
+    env_file:
+      - ./.env.staging
+    volumes:
+      - ./src:/usr/src/app/src
+    depends_on:
+      boardso-postgres-staging:
+        condition: service_healthy
+  boardso-postgres-staging:
+    container_name: boardso-postgres-staging
+    image: postgres:16
+    restart: always
+    ports:
+      - 5433:5432
+    env_file:
+      - ./.env.staging
+    volumes:
+      - boardso-db-data-staging:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+        
   # production
   boardso-api:
     container_name: boardso-api
@@ -69,6 +102,9 @@ volumes:
   # production
   boardso-db-data:
     name: boardso-db-data
+  # staging
+  boardso-db-data-staging:
+    name: boardso-db-data-staging
   # development
   boardso-db-data-dev:
     name: boardso-db-data-dev
