@@ -10,7 +10,7 @@ async function bootstrap() {
       process.env.LOCAL_FRONTEND_BASE_URL,
     ],
   });
-  app.use(json({ limit: '30mb' }));
+  app.use(json({ limit: 6 * 5 * 1024 ** 2 }));
   await app.listen(3333);
 }
 bootstrap();
