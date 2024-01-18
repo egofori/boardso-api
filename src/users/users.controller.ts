@@ -29,6 +29,12 @@ export class UsersController {
     return this.usersService.findOne(userId);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('status')
+  getStatus(@GetCurrentUserId() userId: string) {
+    return this.usersService.getStatus(userId);
+  }
+
   @Get(':username')
   findOneByUsername(@Param('username') username: string) {
     return this.usersService.findOneByUsername({ username });

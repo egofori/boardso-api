@@ -9,10 +9,11 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { FindUserDto } from './dto/find-user.dto';
 import { deleteImage } from '@/utils';
 import { firebaseAuth } from '@/utils/firebase';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private config: ConfigService) {}
 
   create(createUserDto: CreateUserDto) {
     return 'This action adds a new user';
@@ -188,5 +189,23 @@ export class UsersService {
       .catch((err) => {
         throw new BadRequestException(err);
       });
+  }
+
+  async getStatus(userId: string | number) {
+    try {
+      const billboardAggregate = await this.prisma.billboard.aggregate({
+        where: {
+          ownerId: Number(userId),
+        },
+        _count: true,
+      });
+
+      return {
+        billboardCount: billboardAggregate._count,
+        maxFreeListings: this.config.get<number>('MAX_FREE_LISTINGS') || 5,
+      };
+    } catch {
+      throw new BadRequestException();
+    }
   }
 }
