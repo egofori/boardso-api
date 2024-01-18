@@ -202,7 +202,8 @@ export class UsersService {
 
       return {
         billboardCount: billboardAggregate._count,
-        maxFreeListings: this.config.get<number>('MAX_FREE_LISTINGS') || 5,
+        maxFreeListings:
+          Number(this.config.get<number>('MAX_FREE_LISTINGS')) || 5,
       };
     } catch {
       throw new BadRequestException();
