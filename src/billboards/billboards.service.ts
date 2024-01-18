@@ -13,12 +13,14 @@ import { SearchBillboardsDto } from './dto/search-billboards.dto';
 import { Prisma } from '@prisma/client';
 import { GetBillboardDto } from './dto/get-billboard.dto';
 import { deleteImage } from '../utils';
+import { UsersService } from '@/users/users.service';
 
 @Injectable()
 export class BillboardsService {
   constructor(
     private prisma: PrismaService,
     private billboardImages: BillboardImagesService,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(
@@ -26,6 +28,19 @@ export class BillboardsService {
     data: CreateBillboardDto,
     images: Array<Express.Multer.File>,
   ) {
+    try {
+      const { billboardCount, maxFreeListings } =
+        await this.usersService.getStatus(userId);
+      // temporary restriction to limit number of free listings
+      if (billboardCount >= maxFreeListings) {
+        throw new BadRequestException(
+          'Subscribe/upgrade to add more billboard listings',
+        );
+      }
+    } catch (err) {
+      throw new BadRequestException(err);
+    }
+
     const { title } = data;
     const randomSuffix = randomBytes(16).toString('hex');
     const titleSlug = slugify(title, {
@@ -252,7 +267,7 @@ export class BillboardsService {
       orderBy: this.orderBy(data?.sort),
     });
 
-    // get the count using the smae filter as the findAll
+    // get the count using the same filter as the findAll
     const aggregations = await this.prisma.billboard.aggregate({
       _count: true,
       where: filter,

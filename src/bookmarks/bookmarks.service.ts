@@ -135,7 +135,7 @@ export class BookmarksService {
       throw new NotFoundException('No bookmarks found');
     }
 
-    // get the count using the smae filter as the findAll
+    // get the count using the same filter as the findAll
     const aggregations = await this.prisma.bookmark.aggregate({
       _count: true,
       where: filter,
