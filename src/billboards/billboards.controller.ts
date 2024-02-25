@@ -29,7 +29,7 @@ export class BillboardsController {
 
   @UseGuards(JwtAuthGuard)
   @Post('add')
-  @UseInterceptors(FilesInterceptor('images', 5))
+  @UseInterceptors(FilesInterceptor('images', 10))
   create(
     @Body() createBillboardDto: CreateBillboardDto,
     @UploadedFiles(imageValidator)

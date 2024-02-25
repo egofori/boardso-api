@@ -10,6 +10,7 @@ import { FindUserDto } from './dto/find-user.dto';
 import { deleteImage } from '@/utils';
 import { firebaseAuth } from '@/utils/firebase';
 import { ConfigService } from '@nestjs/config';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class UsersService {
@@ -200,10 +201,47 @@ export class UsersService {
         _count: true,
       });
 
+      const subscription = await this.prisma.subscription.findFirst({
+        where: { ownerId: +userId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          subscribedAt: true,
+          expiresAt: true,
+          plan: { select: { name: true } },
+        },
+      });
+
+      const isSubscriptionActive = subscription
+        ? dayjs(subscription.expiresAt).isAfter(dayjs())
+        : false;
+
+      const daysLeft = subscription
+        ? dayjs(subscription.expiresAt).diff(dayjs(), 'day')
+        : null;
+
+      let currentPlan = subscription?.plan?.name;
+
+      if (!subscription) {
+        // find the free plan if there is no subscription
+        const freePlan = await this.prisma.plan.findFirst({
+          where: {
+            amount: 0,
+            number: 0,
+          },
+        });
+
+        currentPlan = freePlan?.name;
+      }
+
       return {
         billboardCount: billboardAggregate._count,
         maxFreeListings:
-          Number(this.config.get<number>('MAX_FREE_LISTINGS')) || 5,
+          Number(this.config.get<number>('MAX_FREE_LISTINGS')) || 3,
+        isSubscriptionActive,
+        subscriptionExpiresAt: subscription?.expiresAt,
+        subscribedAt: subscription?.subscribedAt,
+        currentPlan,
+        daysLeft: daysLeft < 0 ? 0 : daysLeft,
       };
     } catch {
       throw new BadRequestException();
