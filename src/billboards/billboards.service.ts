@@ -14,6 +14,7 @@ import { Prisma } from '@prisma/client';
 import { GetBillboardDto } from './dto/get-billboard.dto';
 import { deleteImage } from '../utils';
 import { UsersService } from '@/users/users.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class BillboardsService {
@@ -21,6 +22,7 @@ export class BillboardsService {
     private prisma: PrismaService,
     private billboardImages: BillboardImagesService,
     private readonly usersService: UsersService,
+    private config: ConfigService,
   ) {}
 
   async create(
@@ -29,13 +31,19 @@ export class BillboardsService {
     images: Array<Express.Multer.File>,
   ) {
     try {
-      const { billboardCount, maxFreeListings } =
+      const { billboardCount, maxFreeListings, isSubscriptionActive } =
         await this.usersService.getStatus(userId);
-      // temporary restriction to limit number of free listings
-      if (billboardCount >= maxFreeListings) {
+
+      // limit the number of free listings if unsubscribed
+      if (billboardCount >= maxFreeListings && !isSubscriptionActive) {
         throw new BadRequestException(
-          'Subscribe/upgrade to add more billboard listings',
+          'Subscribe to add more billboard listings',
         );
+      }
+
+      // limit the number of images if unsubscribed
+      if (images.length > 5 && !isSubscriptionActive) {
+        throw new BadRequestException('Subscribe to add more images');
       }
     } catch (err) {
       throw new BadRequestException(err);
@@ -247,6 +255,20 @@ export class BillboardsService {
             firstName: true,
             lastName: true,
             username: true,
+            subscription: {
+              select: { expiresAt: true },
+              where: {
+                expiresAt: { gte: new Date() },
+              },
+              orderBy: { updateAt: 'desc' },
+              take: 1,
+            },
+            billboards: {
+              take: Number(this.config.get<number>('MAX_FREE_LISTINGS')) || 3,
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
             userProfile: {
               select: {
                 profileImage: true,
@@ -275,17 +297,36 @@ export class BillboardsService {
 
     return {
       data: billboards.map((billboard) => {
-        const { bookmarks, ...rest } = billboard;
-        return { ...rest, bookmarked: bookmarks.length > 0 };
+        const {
+          bookmarks,
+          owner: { subscription, billboards: ownerBillboards, ...ownerRest },
+          ...rest
+        } = billboard;
+
+        return {
+          ...rest,
+          owner: ownerRest,
+          // tag as premium if user has an active subscription
+          premium: subscription.length > 0,
+          // make active by default if user is subscribed
+          // else only make first 3 billboards active
+          isActive:
+            subscription.length > 0
+              ? true
+              : ownerBillboards.filter(
+                  (ownerBillboard) => ownerBillboard.id === billboard.id,
+                ).length > 0,
+          bookmarked: bookmarks.length > 0,
+        };
       }),
       count: aggregations._count,
     };
   }
 
   async findOne(userId: string, getBillboardDto: GetBillboardDto) {
-    const { slug, uid } = getBillboardDto;
+    const { slug, uid, id } = getBillboardDto;
     let billboard = null;
-    const select = {
+    const select: any = {
       currency: true,
       description: true,
       height: true,
@@ -321,6 +362,20 @@ export class BillboardsService {
           firstName: true,
           lastName: true,
           username: true,
+          subscription: {
+            select: { expiresAt: true },
+            where: {
+              expiresAt: { gte: new Date() },
+            },
+            orderBy: { updateAt: 'desc' },
+            take: 1,
+          },
+          billboards: {
+            take: Number(this.config.get<number>('MAX_FREE_LISTINGS')) || 3,
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
           userProfile: {
             select: {
               profileImage: true,
@@ -353,9 +408,15 @@ export class BillboardsService {
           },
         },
       });
+      // return details based on uid when the user wants to edit
     } else if (uid && userId) {
       billboard = await this.prisma.billboard.findUnique({
         where: { uid },
+        select,
+      });
+    } else if (id && userId) {
+      billboard = await this.prisma.billboard.findUnique({
+        where: { id: +id },
         select,
       });
     }
@@ -364,9 +425,32 @@ export class BillboardsService {
       throw new NotFoundException('Billboard does not exist');
     }
 
-    const { bookmarks, ...rest } = billboard;
+    const {
+      bookmarks,
+      owner: { subscription, billboards: ownerBillboards, ...ownerRest },
+      ...rest
+    } = billboard;
+
+    billboard = {
+      ...rest,
+      owner: ownerRest,
+      // tag as premium if user has an active subscription
+      premium: subscription.length > 0,
+      // make active by default if user is subscribed
+      // else only make first 3 billboards active
+      isActive:
+        subscription.length > 0
+          ? true
+          : ownerBillboards.filter(
+              (ownerBillboard: any) => ownerBillboard.id === billboard.id,
+            ).length > 0,
+    };
+
     if (bookmarks) {
-      return { ...rest, bookmarked: bookmarks.length > 0 };
+      return {
+        ...billboard,
+        bookmarked: bookmarks.length > 0,
+      };
     } else {
       return billboard;
     }
@@ -378,6 +462,11 @@ export class BillboardsService {
     data: UpdateBillboardDto,
     images: Array<Express.Multer.File>,
   ) {
+    const billboard = await this.findOne(userId, { id });
+
+    if (!billboard?.isActive) {
+      throw new BadRequestException('Subscribe to edit this billboard');
+    }
     const { title } = data;
     const randomSuffix = randomBytes(16).toString('hex');
     const titleSlug = slugify(title, {
