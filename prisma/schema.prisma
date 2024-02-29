@@ -191,9 +191,9 @@ model Transaction {
   reference    String            @unique
   status       TransactionStatus
   metadata     Json?
-  owner        User              @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: Cascade)
-  ownerId      Int
-  plan         Plan              @relation(fields: [planId], references: [id], onDelete: NoAction, onUpdate: Cascade)
+  owner        User?              @relation(fields: [ownerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  ownerId      Int?
+  plan         Plan              @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   planId       Int
   subscription Subscription?
 }
@@ -205,7 +205,7 @@ model Subscription {
 
   subscribedAt  DateTime
   expiresAt     DateTime
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: Cascade)
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   transactionId Int         @unique
   owner         User?       @relation(fields: [ownerId], references: [id])
   ownerId       Int?
