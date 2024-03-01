@@ -15,17 +15,19 @@ model User {
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt()
 
-  firstName   String
-  lastName    String
-  zipCode     String?
-  phone       String?
-  email       String?      @unique
-  password    String?
-  username    String       @unique
-  confirmed   Boolean?     @default(false)
-  billboards  Billboard[]
-  bookmarks   Bookmark[]
-  userProfile UserProfile?
+  firstName    String
+  lastName     String
+  zipCode      String?
+  phone        String?
+  email        String?        @unique
+  password     String?
+  username     String         @unique
+  confirmed    Boolean?       @default(false)
+  billboards   Billboard[]
+  bookmarks    Bookmark[]
+  userProfile  UserProfile?
+  subscription Subscription[]
+  transaction  Transaction[]
 }
 
 model UserProfile {
@@ -143,6 +145,74 @@ model BillboardLocation {
   billboardId              Int       @unique
 }
 
+model Plan {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  name         String
+  description  String
+  currency     String
+  amount       Int
+  period       String
+  number       Int
+  active       Boolean
+  discount     Discount[]
+  transaction  Transaction[]
+  subscription Subscription[]
+}
+
+model Discount {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  name        String
+  description String
+  amount      Int
+  unit        String
+  startDate   DateTime
+  endDate     DateTime
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: NoAction, onUpdate: Cascade)
+  planId      Int
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  paidAt       DateTime?
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String?
+  provider     String
+  reference    String            @unique
+  status       TransactionStatus
+  metadata     Json?
+  owner        User?              @relation(fields: [ownerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  ownerId      Int?
+  plan         Plan              @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  planId       Int
+  subscription Subscription?
+}
+
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt()
+
+  subscribedAt  DateTime
+  expiresAt     DateTime
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  transactionId Int         @unique
+  owner         User?       @relation(fields: [ownerId], references: [id])
+  ownerId       Int?
+  plan          Plan?       @relation(fields: [planId], references: [id])
+  planId        Int?
+}
+
 enum Provider {
   GCS
   AWS_S3
@@ -165,4 +235,11 @@ enum ContactType {
   PHONE
   EMAIL
   URL
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REVERSED
 }

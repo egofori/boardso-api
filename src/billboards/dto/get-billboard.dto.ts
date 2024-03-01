@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsNumberString, IsString } from 'class-validator';
 
 export class GetBillboardDto {
   @IsString()
@@ -6,4 +6,7 @@ export class GetBillboardDto {
 
   @IsString()
   public uid?: string;
+
+  @IsNumberString()
+  public id?: string;
 }
