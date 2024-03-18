@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Billboard" ALTER COLUMN "currency" DROP NOT NULL,
+ALTER COLUMN "price" DROP NOT NULL,
+ALTER COLUMN "rate" DROP NOT NULL;

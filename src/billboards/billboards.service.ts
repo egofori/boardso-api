@@ -49,7 +49,7 @@ export class BillboardsService {
       throw new BadRequestException(err);
     }
 
-    const { title } = data;
+    const { title, price, rate, currency } = data;
     const randomSuffix = randomBytes(16).toString('hex');
     const titleSlug = slugify(title, {
       replacement: '-',
@@ -68,6 +68,12 @@ export class BillboardsService {
       height = height * 3.28084;
     }
 
+    if (price && !currency) {
+      throw new BadRequestException('Currency is a required field');
+    } else if (price && !rate) {
+      throw new BadRequestException('Rate is a required field');
+    }
+
     return this.prisma.billboard
       .create({
         data: {
@@ -76,7 +82,7 @@ export class BillboardsService {
           description: data.description,
           slug: `${titleSlug}-${randomSuffix}`,
           type: data.type,
-          price: +data.price,
+          price: isNaN(parseFloat(price as any)) ? null : +price,
           currency: data.currency,
           rate: data.rate,
           width: width,
@@ -113,9 +119,9 @@ export class BillboardsService {
       case 'DATE_DESC':
         return { createdAt: 'desc' };
       case 'PRICE_ASC':
-        return { price: 'asc' };
+        return { price: { sort: 'asc', nulls: 'last' } };
       case 'PRICE_DESC':
-        return { price: 'desc' };
+        return { price: { sort: 'desc', nulls: 'last' } };
       default:
         return { createdAt: 'desc' };
     }
@@ -467,7 +473,7 @@ export class BillboardsService {
     if (!billboard?.isActive) {
       throw new BadRequestException('Subscribe to edit this billboard');
     }
-    const { title } = data;
+    const { title, price, rate, currency } = data;
     const randomSuffix = randomBytes(16).toString('hex');
     const titleSlug = slugify(title, {
       replacement: '-',
@@ -486,6 +492,12 @@ export class BillboardsService {
       height = height * 3.28084;
     }
 
+    if (price && !currency) {
+      throw new BadRequestException('Currency is a required field');
+    } else if (price && !rate) {
+      throw new BadRequestException('Rate is a required field');
+    }
+
     return this.prisma.billboard
       .update({
         where: { id: Number(id), ownerId: Number(userId) },
@@ -494,7 +506,7 @@ export class BillboardsService {
           description: data.description,
           slug: `${titleSlug}-${randomSuffix}`,
           type: data.type,
-          price: +data.price,
+          price: isNaN(parseFloat(price as any)) ? null : +price,
           currency: data.currency,
           rate: data.rate,
           width: width,
