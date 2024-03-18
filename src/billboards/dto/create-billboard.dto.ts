@@ -24,18 +24,15 @@ export class CreateBillboardDto {
   @IsNumberString()
   public height: number;
 
-  @IsNotEmpty()
   @IsNumber()
   @IsNumberString()
-  public price: number;
+  public price: number | null;
 
-  @IsNotEmpty()
   @IsString()
-  public currency: string;
+  public currency: string | null;
 
-  @IsNotEmpty()
   @IsString()
-  public rate: Rate;
+  public rate: Rate | null;
 
   @IsNotEmpty()
   @IsString()

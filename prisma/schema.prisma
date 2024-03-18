@@ -90,9 +90,9 @@ model Billboard {
   width             Int?
   height            Int?
   // price
-  currency          String
-  price             Int
-  rate              Rate
+  currency          String?
+  price             Int?
+  rate              Rate?
 }
 
 model Bookmark {
